@@ -12,7 +12,7 @@ public class GameStarter : MonoBehaviour
 
     public void Start()
     {
-        GameStarterAnimator.enabled = false;
+        //GameStarterAnimator.enabled = false;
         player.constraints = RigidbodyConstraints2D.FreezePositionY;
         playerScript.enabled = false;
     }

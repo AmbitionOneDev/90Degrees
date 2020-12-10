@@ -5,13 +5,8 @@ public class Player : MonoBehaviour
 {
     /*********<defaults>************/
     #region
-    // The default running speed used for initial force addition
     public static float runSpeed = 12.5f;
-
-    // The default jumping force used if the user presses a jump key.
     public readonly float jumpForce = 12.5f;
-
-    // The default force applied after the player triggers a jump pad.
     private readonly float bounceForce = 40f;
 
     // Player's default speed
@@ -23,24 +18,13 @@ public class Player : MonoBehaviour
 
     /*********<booleans>************/
     #region
-    // Gets set to true/false when the player
-    // Enters/Exits the jump pad trigger
     private bool isJumpPadTriggered;
-
-    // Used to check if the player has picked up a speedup pickup
     private bool hasSpeedUpPickupActive = false;
-
-    // Used to check if the player has picked up a slowdown pickup
     private bool hasSlowDownPickupActive = false;
-
     bool isGrounded = true;
-
     bool canDoubleJump = false;
-
     bool isFacingLeft = false;
-
     public static bool hasDied = false;
-
     private bool isRotating = false;
     #endregion
     /*********</booleans>************/
@@ -53,38 +37,24 @@ public class Player : MonoBehaviour
     // Time to reload scene after death
     private const float SCENE_RESET_TIME = 2f;
 
-    // Speed up factor
     private const float SPEED_UP_FACTOR = 1.5f;
-    
-    // Slowdown factor 
     private const float SLOW_DOWN_FACTOR = 0.5f;
-
-    // Calculated in Unity, imported as only a float number.
-    // The speed that the player has
-    // after it has been lauched off a jump pad.
-    private const float JUMP_PAD_LAUNCH_SPEED = 20f;
 
     // Speed-related pickups duration in seconds
     private const float SPEED_CHANGE_DURATION = 5f;
 
     // Used to cancel out the force in case of double jump 
     // and add a slight boost for the second jump
-    private float DOUBLE_JUMP_FORCE_MULTIPLIER = 0.75f;
-
-    private float MAX_POSITION = 1.5815f;
+    private readonly float DOUBLE_JUMP_FORCE_MULTIPLIER = 0.75f;
+    private readonly float MAX_POSITION = 1.5815f;
     #endregion
     /*********</constants>************/
 
     /*********<auxillaries>************/
     #region
-    // Referencing player object
     public Rigidbody2D player;
-
-    // Referencing FollowPlayer script
     public FollowPlayer FollowPlayer;
-
     public LevelGeneratorScript LGscript;
-
     public GameObject clearer;
 
     // used for restraining position
@@ -94,15 +64,10 @@ public class Player : MonoBehaviour
     // to add wanted force to the player
     // VIEW: AddForceBasedOnPickup
     private float speedJumpFactor;
-
     public GameStarter gameStarterScript;
-
     public Camera cameraMain;
-
     Vector3 startingPosition;
-
     private bool isEligibleForJump = true;
-
     private int direction = 0;
 
 
@@ -127,7 +92,6 @@ public class Player : MonoBehaviour
         // If player lands on a jump pad
         if (collision.CompareTag("JumpPad"))
         {
-            // Flag the jump pad as triggered
             isJumpPadTriggered = true;
             isEligibleForJump = false;
             isGrounded = false;
@@ -145,7 +109,6 @@ public class Player : MonoBehaviour
          ********************************************************/
         switch (collision.tag)
         {
-            // If the player picks up the SpeedUp pickup
             case "SpeedUp":
 
                 // If SpeedUp is already active
@@ -154,8 +117,6 @@ public class Player : MonoBehaviour
                 {
                     break;
                 }
-
-                // If SpeedUp is not active
                 else
                 {
                     // Set the current speed jump factor to a square of speedup factors
@@ -167,10 +128,6 @@ public class Player : MonoBehaviour
 
                     // Destroy the picked up object
                     Destroy(collision.gameObject);
-
-                    // let the game know
-                    // that the player picked up
-                    // a SpeedUp pickup
                     hasSpeedUpPickupActive = true;
 
                     // Add amplified force to the player
@@ -182,7 +139,6 @@ public class Player : MonoBehaviour
                     break;
                 }
 
-            // If the player picks up the SlowDown pickup
             case "SlowDown":
 
                 // Set the current speed jump factor to a square of slowdown factors
@@ -193,27 +149,15 @@ public class Player : MonoBehaviour
                 {
                     break;
                 }
-
-                // If SlowDown is not active
                 else
                 {
-                    // Set vertical speed to 0
-                    // to allow proper force addition
                     ResetSpeed();
-
-                    // Destroy the picked up object
                     Destroy(collision.gameObject);
-
-                    // let the game know
-                    // that the player picked up
-                    // a SlowDown pickup
                     hasSlowDownPickupActive = true;
 
                     // Add muffled force to the player
                     player.AddForce(Vector2.up * runSpeed * SLOW_DOWN_FACTOR, ForceMode2D.Impulse);
 
-                    // Let the pickup last for a set amount of time
-                    // Before resetting the speed back to normal
                     Invoke("ResetSpeed", SPEED_CHANGE_DURATION);
                     break;
                 }
@@ -225,18 +169,17 @@ public class Player : MonoBehaviour
 
                 // Freeze the rotation
                 isRotating = false;
+
                 /*************add a death animation****************/
 
                 player.velocity = Vector2.zero;
 
                 // Disable the camera follow script (FollowPlayer.cs)
                 FollowPlayer.enabled = false;
-
                 isEligibleForJump = true;
-
                 hasDied = true;
 
-                // Call ReloadScene after a set amount of seconds has passed
+                // Reload the scene
                 Invoke("ReloadScene", SCENE_RESET_TIME);
                 break;
         }
@@ -244,9 +187,8 @@ public class Player : MonoBehaviour
     }
     private void OnTriggerExit2D(Collider2D collision)
     {
-        // If the player gets bounced off the jump pad
         if (collision.CompareTag("JumpPad"))
-            // Revert the trigger state to not triggered
+            // Disable further jump pad launches
             isJumpPadTriggered = false;
     }
 
@@ -268,12 +210,6 @@ public class Player : MonoBehaviour
         bool leftJump = Input.GetKeyDown(KeyCode.LeftArrow);
         bool rightJump = Input.GetKeyDown(KeyCode.RightArrow);
 
-
-        if (leftJump)
-            direction = 1;
-        else if(rightJump)
-            direction = -1;
-
         isGrounded = (MAX_POSITION - Math.Abs(player.transform.position.x)) < FLOAT_CALCULATION_ERROR;
 
         // If the player has already picked up a speed pickup
@@ -284,21 +220,23 @@ public class Player : MonoBehaviour
         if (hasSpeedUpPickupActive)
             DestroySpeedPickups("SpeedUp");
 
-        // Assign true or false depending on keypress state
-        bool isPressed = Input.GetKeyDown(KeyCode.LeftArrow) ||
-                         Input.GetKeyDown(KeyCode.RightArrow);
+        bool isPressed = leftJump || rightJump;
 
         if (hasDied)
             isPressed = false;
 
+        
         /***************** <Double jump code> *****************/
-
-
         #region 
         if (isPressed && isEligibleForJump)
         {
             isRotating = true;
-            
+
+            if (leftJump)
+                direction = 1;
+            else if (rightJump)
+                direction = -1;
+
             if (isGrounded) {
 
                 if (leftJump && player.transform.position.x > 0) {
@@ -308,7 +246,7 @@ public class Player : MonoBehaviour
                     canDoubleJump = true;
                 }
 
-                if (rightJump && player.transform.position.x < 0) {
+                else if (rightJump && player.transform.position.x < 0) {
                     player.AddForce(Vector2.right * jumpForce, ForceMode2D.Impulse);
                     isFacingLeft = false;
                     isGrounded = false;
@@ -354,13 +292,10 @@ public class Player : MonoBehaviour
         if (!isGrounded)
         {
             if (isRotating)
-            {
                 Rotate(direction);
-            }
         }
         else
             StopRotating();
-        
 
         #endregion
         /***************** </Double jump code> *****************/
@@ -368,20 +303,12 @@ public class Player : MonoBehaviour
         /***************** <Jump pad code> *****************/
         if (isJumpPadTriggered) 
         {
-            // If the player was not previously flipped
-            // but is within the proper position flip it
-            if ((player.transform.localScale.x > 0 && player.transform.position.x < 0) ||
-                (player.transform.localScale.x < 0 && player.transform.position.x > 0))
-                Flip();
-
             // Stop any horizontal movement
             player.velocity = new Vector2(0f, player.velocity.y);
 
             // Check whether the JumpPad is on the right side
             if (jumpPadPosition.x > 0)
                 player.AddForce(new Vector2(-bounceForce, runSpeed * 0.05f), ForceMode2D.Impulse);
-
-            // Check whether the JumpPad is on the left side
             else
                 player.AddForce(new Vector2(bounceForce, runSpeed * 0.05f), ForceMode2D.Impulse);
         }
@@ -402,18 +329,6 @@ public class Player : MonoBehaviour
         player.velocity = new Vector2(0f, 0f);
         player.transform.position = startingPosition;
         gameObject.transform.GetChild(0).gameObject.transform.rotation = new Quaternion(0f, 0f, 0f, 0f);
-    }
-
-    /// <summary>
-    /// Used to flip the player model when necessary,
-    /// e.g. when the jump button is pressed.
-    /// </summary>
-    public void Flip()
-    {
-        // Rotate the current player scale by 180 degrees
-        Vector2 newScale = player.transform.localScale;
-        newScale.x *= -1;
-        player.transform.localScale = newScale;
     }
 
     /// <summary>
@@ -512,6 +427,7 @@ public class Player : MonoBehaviour
     public void Rotate(int direction)
     {
         GameObject parent = gameObject;
+        //Rotate the child sprite of player object
         parent.transform.GetChild(0).gameObject.transform.Rotate(0f,0f,1.5f * direction, Space.Self);
     }
 
