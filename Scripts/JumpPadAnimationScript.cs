@@ -4,6 +4,7 @@ public class JumpPadAnimationScript : MonoBehaviour
 {
 
     public Animator jumpPadAnimator;
+    private const string jumpAnimation = "JumpPadAnimationNew";
     private const float OBJECT_DESTRUCTION_DELAY = 0.25f;
 
     private void Start()
@@ -14,10 +15,9 @@ public class JumpPadAnimationScript : MonoBehaviour
     {
         if (collision.CompareTag("Player"))
         {
-            jumpPadAnimator.Play("JumpPadAnimation");
+            jumpPadAnimator.Play(jumpAnimation);
             
             Invoke("DestroyCurrentJumpPad", OBJECT_DESTRUCTION_DELAY);
-            
         }
     }
 

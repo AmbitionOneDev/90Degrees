@@ -6,7 +6,7 @@ public class Player : MonoBehaviour
     /*********<defaults>************/
     #region
     public static float runSpeed = 12.5f;
-    public readonly float jumpForce = 12.5f;
+    public readonly float jumpForce = 14.5f;
     private readonly float bounceForce = 40f;
 
     // Player's default speed
@@ -162,7 +162,7 @@ public class Player : MonoBehaviour
                     break;
                 }
 
-            // In case the player encounters an obstacle 
+            //In case the player encounters an obstacle
             case "Obstacle":
                 // Freeze it's position
                 player.constraints = RigidbodyConstraints2D.FreezePosition;
@@ -181,6 +181,8 @@ public class Player : MonoBehaviour
 
                 // Reload the scene
                 Invoke("ReloadScene", SCENE_RESET_TIME);
+                break;
+            default:
                 break;
         }
 
@@ -308,9 +310,9 @@ public class Player : MonoBehaviour
 
             // Check whether the JumpPad is on the right side
             if (jumpPadPosition.x > 0)
-                player.AddForce(new Vector2(-bounceForce, runSpeed * 0.05f), ForceMode2D.Impulse);
+                player.AddForce(new Vector2(-bounceForce, 0f), ForceMode2D.Impulse);
             else
-                player.AddForce(new Vector2(bounceForce, runSpeed * 0.05f), ForceMode2D.Impulse);
+                player.AddForce(new Vector2(bounceForce, 0f), ForceMode2D.Impulse);
         }
         /***************** </Jump pad code> *****************/
 
@@ -428,7 +430,7 @@ public class Player : MonoBehaviour
     {
         GameObject parent = gameObject;
         //Rotate the child sprite of player object
-        parent.transform.GetChild(0).gameObject.transform.Rotate(0f,0f,1.5f * direction, Space.Self);
+        parent.transform.GetChild(0).gameObject.transform.Rotate(0f,0f,1.75f * direction, Space.Self);
     }
 
     public void StopRotating()
