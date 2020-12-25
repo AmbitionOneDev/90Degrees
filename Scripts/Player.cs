@@ -1,78 +1,75 @@
 ﻿using System;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 public class Player : MonoBehaviour
 {
-    /*********<defaults>************/
+    /*--------------------------------------<defaults>--------------------------------------*/
     #region
-    public static float runSpeed = 12.5f;
-    public readonly float jumpForce = 14.5f;
-    private readonly float bounceForce = 40f;
 
-    // Player's default speed
-    private Vector2 velocityVector = Vector2.up * runSpeed;
+    private static readonly float runSpeed = 12.5f;
+    private readonly float jumpPadLaunchForce = 40f;
+    private readonly float jumpForce = 14.5f;
+    private Vector2 defaultSpeed = Vector2.up * runSpeed;
+    private Vector3 startingCameraPosition = new Vector3(0f, 4f, -7f);
 
-    Vector3 startingCameraPosition = new Vector3(0f, 4f, -7f);
     #endregion
-    /*********</defaults>************/
+    /*--------------------------------------</defaults>--------------------------------------*/
 
-    /*********<booleans>************/
+    /*--------------------------------------<booleans>--------------------------------------*/
     #region
+
+    // used externally in LevelGenerator
+    public static bool hasDied = false;
+
     private bool isJumpPadTriggered;
     private bool hasSpeedUpPickupActive = false;
     private bool hasSlowDownPickupActive = false;
-    bool isGrounded = true;
-    bool canDoubleJump = false;
-    bool isFacingLeft = false;
-    public static bool hasDied = false;
+    private bool isGrounded = true;
+    private bool canDoubleJump = false;
+    private bool isFacingLeft = false;
     private bool isRotating = false;
+
     #endregion
-    /*********</booleans>************/
+    /*--------------------------------------</booleans>--------------------------------------*/
 
-    /*********<constants>************/
+    /*--------------------------------------<constants>--------------------------------------*/
     #region
-    // Used to eliminate any possible floating point decimal errors.
+
     private const double FLOAT_CALCULATION_ERROR = 1E-8f;
-
-    // Time to reload scene after death
     private const float SCENE_RESET_TIME = 2f;
-
     private const float SPEED_UP_FACTOR = 1.5f;
     private const float SLOW_DOWN_FACTOR = 0.5f;
-
-    // Speed-related pickups duration in seconds
-    private const float SPEED_CHANGE_DURATION = 5f;
-
-    // Used to cancel out the force in case of double jump 
-    // and add a slight boost for the second jump
+    private const float SPEED_PICKUP_DURATION = 5f;
     private readonly float DOUBLE_JUMP_FORCE_MULTIPLIER = 0.75f;
     private readonly float MAX_POSITION = 1.5815f;
+
     #endregion
-    /*********</constants>************/
+    /*--------------------------------------</constants>--------------------------------------*/
 
-    /*********<auxillaries>************/
+    /*--------------------------------------<auxillaries>--------------------------------------*/
     #region
+
     public Rigidbody2D player;
+    public GameObject deathAnimObject;
     public FollowPlayer FollowPlayer;
-    public LevelGeneratorScript LGscript;
+    public LevelGenerator LGscript;
     public GameObject clearer;
-
-    // used for restraining position
-    private Vector2 jumpPadPosition;
-
-    // Stores the factor which is then later used
-    // to add wanted force to the player
-    // VIEW: AddForceBasedOnPickup
-    private float speedJumpFactor;
+    public Animator deathAnimator;
     public GameStarter gameStarterScript;
     public Camera cameraMain;
-    Vector3 startingPosition;
-    private bool isEligibleForJump = true;
+
+
     private int direction = 0;
+    private bool isEligibleForJump = true;
+    private float speedJumpFactor;
+    private Vector2 jumpPadPosition;
+    private Vector3 startingPosition;
+    private bool isPressed;
+    private bool leftJump;
+    private bool rightJump;
 
 
     #endregion
-    /*********</auxillaries>************/
+    /*--------------------------------------</auxillaries>--------------------------------------*/
 
     public void Start()
     {
@@ -83,7 +80,11 @@ public class Player : MonoBehaviour
     public void OnEnable()
     {
         // Add starting force
-        player.AddForce(velocityVector, ForceMode2D.Impulse);
+        player.AddForce(defaultSpeed, ForceMode2D.Impulse);
+
+        // deactivate unnecessary death animation object and its animator component
+        deathAnimObject.SetActive(false);
+        deathAnimator.enabled = false;
     }
 
     public void OnTriggerEnter2D(Collider2D collision)
@@ -93,20 +94,25 @@ public class Player : MonoBehaviour
         if (collision.CompareTag("JumpPad"))
         {
             isJumpPadTriggered = true;
+
             isEligibleForJump = false;
+
             isGrounded = false;
+
             // Store the current jumppad position for further checks
             jumpPadPosition = collision.transform.position;
+
+            // exit the function, important!
             return;
         }
 
-        /********************************************************
+        /*------------------------------------------------------------------------------------------------------------------********
          * ako je lik pokupio neki od pickupa
          * pa nakon toga pokupio suprotni pickup
          * makni efekte tog pickupa
          * i dodaj efekte tog novopokupljenog 
          * TO MORAS DODAT, JOS NIJE DODANO
-         ********************************************************/
+         ------------------------------------------------------------------------------------------------------------------********/
         switch (collision.tag)
         {
             case "SpeedUp":
@@ -114,9 +120,7 @@ public class Player : MonoBehaviour
                 // If SpeedUp is already active
                 // Do not allow another pickup of it
                 if (hasSpeedUpPickupActive)
-                {
                     break;
-                }
                 else
                 {
                     // Set the current speed jump factor to a square of speedup factors
@@ -135,7 +139,7 @@ public class Player : MonoBehaviour
 
                     // Let the pickup last for a set amount of time
                     // Before resetting the speed back to normal
-                    Invoke("ResetSpeed", SPEED_CHANGE_DURATION);
+                    Invoke("ResetSpeed", SPEED_PICKUP_DURATION);
                     break;
                 }
 
@@ -146,9 +150,7 @@ public class Player : MonoBehaviour
 
                 // If SlowDown is already active
                 if (hasSlowDownPickupActive)
-                {
                     break;
-                }
                 else
                 {
                     ResetSpeed();
@@ -158,7 +160,7 @@ public class Player : MonoBehaviour
                     // Add muffled force to the player
                     player.AddForce(Vector2.up * runSpeed * SLOW_DOWN_FACTOR, ForceMode2D.Impulse);
 
-                    Invoke("ResetSpeed", SPEED_CHANGE_DURATION);
+                    Invoke("ResetSpeed", SPEED_PICKUP_DURATION);
                     break;
                 }
 
@@ -170,7 +172,7 @@ public class Player : MonoBehaviour
                 // Freeze the rotation
                 isRotating = false;
 
-                /*************add a death animation****************/
+                PlayDeathAnimation();
 
                 player.velocity = Vector2.zero;
 
@@ -182,11 +184,14 @@ public class Player : MonoBehaviour
                 // Reload the scene
                 Invoke("ReloadScene", SCENE_RESET_TIME);
                 break;
+
             default:
                 break;
         }
-
     }
+
+    
+
     private void OnTriggerExit2D(Collider2D collision)
     {
         if (collision.CompareTag("JumpPad"))
@@ -196,44 +201,36 @@ public class Player : MonoBehaviour
 
     public void OnCollisionEnter2D(Collision2D collision)
     {
-
         String collidedObject = collision.collider.ToString();
+
         if (collidedObject.StartsWith("Wall"))
         {
             isRotating = false;
             isEligibleForJump = true;
             player.velocity = new Vector2(0f, player.velocity.y);
-            player.transform.position = (player.transform.position.x < 0) ? new Vector2(-MAX_POSITION, player.transform.position.y) : new Vector2(MAX_POSITION, player.transform.position.y);
+
+            // stick the player to the wall
+            player.transform.position = (player.transform.position.x < 0) 
+                                            ? new Vector2(-MAX_POSITION, player.transform.position.y) 
+                                            : new Vector2(MAX_POSITION, player.transform.position.y);
         }
     }
 
     public void Update()
     {
-        bool leftJump = Input.GetKeyDown(KeyCode.LeftArrow);
-        bool rightJump = Input.GetKeyDown(KeyCode.RightArrow);
+        leftJump = Input.GetKeyDown(KeyCode.LeftArrow);
+        rightJump = Input.GetKeyDown(KeyCode.RightArrow);
+        isPressed = leftJump || rightJump;
 
         isGrounded = (MAX_POSITION - Math.Abs(player.transform.position.x)) < FLOAT_CALCULATION_ERROR;
 
-        // If the player has already picked up a speed pickup
-        // Destroy all the ones that come up
-        // To remove possible confusion and free up some memory
-        if (hasSlowDownPickupActive)
-            DestroySpeedPickups("SlowDown");
-        if (hasSpeedUpPickupActive)
-            DestroySpeedPickups("SpeedUp");
-
-        bool isPressed = leftJump || rightJump;
-
-        if (hasDied)
-            isPressed = false;
-
-        
-        /***************** <Double jump code> *****************/
+        /*-------------------------------------- <Double jump code> --------------------------------------*/
         #region 
         if (isPressed && isEligibleForJump)
         {
             isRotating = true;
 
+            // used for rotation, -1 = left rotation, +1 = right rotation
             if (leftJump)
                 direction = 1;
             else if (rightJump)
@@ -262,9 +259,7 @@ public class Player : MonoBehaviour
                     if (leftJump)
                     {
                         if (isFacingLeft)
-                        {
                             player.AddForce(Vector2.left * jumpForce * DOUBLE_JUMP_FORCE_MULTIPLIER, ForceMode2D.Impulse);
-                        }
                         else
                         {
                             player.velocity = new Vector2(0f, player.velocity.y);
@@ -276,9 +271,7 @@ public class Player : MonoBehaviour
                     if (rightJump)
                     {
                         if (!isFacingLeft)
-                        {
                             player.AddForce(Vector2.right * jumpForce * DOUBLE_JUMP_FORCE_MULTIPLIER, ForceMode2D.Impulse);
-                        }
                         else
                         {
                             player.velocity = new Vector2(0f, player.velocity.y);
@@ -291,43 +284,58 @@ public class Player : MonoBehaviour
             }
         }
 
-        if (!isGrounded)
-        {
-            if (isRotating)
-                Rotate(direction);
-        }
-        else
-            StopRotating();
-
         #endregion
-        /***************** </Double jump code> *****************/
+        /*-------------------------------------- </Double jump code> --------------------------------------*/
 
-        /***************** <Jump pad code> *****************/
-        if (isJumpPadTriggered) 
+        /*-------------------------------------- <Jump pad code> --------------------------------------*/
+        #region
+        if (isJumpPadTriggered)
         {
             // Stop any horizontal movement
             player.velocity = new Vector2(0f, player.velocity.y);
 
             // Check whether the JumpPad is on the right side
             if (jumpPadPosition.x > 0)
-                player.AddForce(new Vector2(-bounceForce, 0f), ForceMode2D.Impulse);
+                player.AddForce(new Vector2(-jumpPadLaunchForce, 0f), ForceMode2D.Impulse);
             else
-                player.AddForce(new Vector2(bounceForce, 0f), ForceMode2D.Impulse);
+                player.AddForce(new Vector2(jumpPadLaunchForce, 0f), ForceMode2D.Impulse);
         }
-        /***************** </Jump pad code> *****************/
+        #endregion
+        /*-------------------------------------- </Jump pad code> --------------------------------------*/
+    }
+
+    public void FixedUpdate()
+    {
+
+        if (hasDied)
+            isPressed = false;
+
+        // If the player has already picked up a speed pickup
+        // Destroy all the ones that come up
+        // To remove possible confusion and free up some memory
+        if (hasSlowDownPickupActive)
+            DestroySpeedPickups("SlowDown");
+        if (hasSpeedUpPickupActive)
+            DestroySpeedPickups("SpeedUp");
+
+        if (!isGrounded && isRotating)
+            Rotate(direction);
+        else
+            StopRotating();
 
         // Player gets "stopped" randomly at times, fixed with this (hopefully)
-        if (player.velocity.y > 0.01f && player.velocity.y < 0.5f)
-        {
-            player.AddForce(velocityVector, ForceMode2D.Impulse);
-        }
+        if (player.velocity.y > 0.01f && player.velocity.y < 0.5f) player.AddForce(defaultSpeed, ForceMode2D.Impulse);
     }
 
     // Methods
     #region                                              
 
-    public void ResetPlayer()
+    private void ResetPlayer()
     {
+        // activate the player after the death animation has finished
+        player.gameObject.SetActive(true);
+
+        // reset position
         player.velocity = new Vector2(0f, 0f);
         player.transform.position = startingPosition;
         gameObject.transform.GetChild(0).gameObject.transform.rotation = new Quaternion(0f, 0f, 0f, 0f);
@@ -338,7 +346,7 @@ public class Player : MonoBehaviour
     /// It stops the player from moving vertically, then adds the default force in order to reset the movement speed back to the starting value.
     /// Finally, resets both speed related flags to false.
     /// </summary>
-    public void ResetSpeed()
+    private void ResetSpeed()
     {
         // remove any vertical velocity
         player.velocity = new Vector2(player.velocity.x, 0f);
@@ -355,43 +363,62 @@ public class Player : MonoBehaviour
     /// Method used to reload the current scene.
     /// Sets currentScene to the current active scene, then uses scene manager to load the mentioned scene.
     /// </summary>
-    public void ReloadScene()
+    private void ReloadScene()
     {
         if (GameStarter.isStarted) {
+
+            // Regenerate the starting section
             LGscript.RegenerateStartingLevels();
 
             // set to default starting clearer position 
             clearer.transform.position = new Vector2(0f, -10.45f);
+
+            // deactivate the death animation animator and gameObject
+            deathAnimObject.SetActive(false);
+            deathAnimator.enabled = false;
+
             ResetPlayer();
+
             ResetCamera();
+
             DestroyGeneratedLevels("LevelPrefab");
+
+            // ground the player
             isGrounded = true;
+
             // Add starting force
-            player.AddForce(velocityVector, ForceMode2D.Impulse);
+            player.AddForce(defaultSpeed, ForceMode2D.Impulse);
+
+            // activate the camera followage script
             FollowPlayer.enabled = true;
+
+            // reset the starting conditions
             player.constraints = RigidbodyConstraints2D.None;
             player.constraints = RigidbodyConstraints2D.FreezeRotation;
         }
     }
 
-    public void ResetCamera()
+    /// <summary>
+    ///     Resets the World Camera to its original position.
+    /// </summary>
+    private void ResetCamera()
     {
         cameraMain.transform.position = startingCameraPosition;
     }
 
 
     /// <summary>
-    /// Used to check how much force the game should add to the player model.
-    /// Takes into consideration the current status of speed pickups.
-    /// If the player does not have a pickup, set its side to side movement speed to default.
-    /// Otherwise, add the default force multiplied by the current pickup's speed factor.
+        /// Used to check how much force the game should add to the player model.
+        /// Takes into consideration the current status of speed pickups.
+        /// If the player does not have a pickup, set its side to side movement speed to default.
+        /// Otherwise, add the default force multiplied by the current pickup's speed factor.
     /// </summary>
     /// 
     /// <param name="forceOrientation">
-    /// Takes in a Vector2 to indicate in which direction the force should be applied.
-    /// Preferably use Vector2.left or Vector2.right for side to side consistent movement.
+        /// Takes in a Vector2 to indicate in which direction the force should be applied.
+        /// Preferably use Vector2.left or Vector2.right for side to side consistent movement.
     /// </param>
-    public void AddForceBasedOnPickup(Vector2 forceOrientation)
+    private void AddForceBasedOnPickup(Vector2 forceOrientation)
     {
         // If the player is moving at a normal speed 
         // Add normal jump force
@@ -406,12 +433,14 @@ public class Player : MonoBehaviour
     }
 
     /// <summary>
-    /// Used to remove all possible speed pickups after a player has picked one up.
-    /// NOTE: if a player has picked up a slowdown pickup, the speed up pickups are stil going to spawn.
-    /// Therefore, in Update() check for both possible pickups.
+        /// Used to remove all possible speed pickups after a player has picked one up.
+        /// NOTE: if a player has picked up a slowdown pickup, the speed up pickups are stil going to spawn.
+        /// Therefore, in Update() check for both possible pickups.
     /// </summary>
-    /// <param name="pickupTag">Takes in a string parameter which represents the ingame tag of the speed pickup you wish to destroy.</param>
-    public void DestroySpeedPickups(String pickupTag)
+    /// <param name="pickupTag">
+    ///     Takes in a string parameter which represents the ingame tag of the speed pickup you wish to destroy.
+    /// </param>
+    private void DestroySpeedPickups(String pickupTag)
     {
         GameObject[] speedPickups = GameObject.FindGameObjectsWithTag(pickupTag);
 
@@ -419,26 +448,69 @@ public class Player : MonoBehaviour
             Destroy(obj);
     }
 
-    public void DestroyGeneratedLevels(String levelTag) {
-        GameObject[] generatedLevels = GameObject.FindGameObjectsWithTag(levelTag);
+    /// <summary>
+    ///     Destroys all created instances of level presets for the selected level difficulty
+    /// </summary>
+    /// <param name="levelDifficulty">
+    ///     Difficulty/Theme of the level which the player is currently playing
+    /// </param>
+    private void DestroyGeneratedLevels(String levelDifficulty) {
+        GameObject[] generatedLevels = GameObject.FindGameObjectsWithTag(levelDifficulty);
         foreach (GameObject obj in generatedLevels)
             Destroy(obj);
     }
 
-    // -1 represents leftward rotation, 1 represents rightward
-    public void Rotate(int direction)
+    /// <summary>
+    ///     Rotates the player's sprite represented as the child object in the wanted direction.
+    /// </summary>
+    /// <param name="direction">
+    ///     Direction of the rotation.
+    ///     Negative represents leftward rotation, positive represents rightward rotation.
+    /// </param>
+    private void Rotate(int direction)
     {
         GameObject parent = gameObject;
+
         //Rotate the child sprite of player object
         parent.transform.GetChild(0).gameObject.transform.Rotate(0f,0f,1.75f * direction, Space.Self);
     }
 
-    public void StopRotating()
+    /// <summary>
+    ///     Stops any further rotation being done on the Player Sprite object by "sticking" it to the nearest side.
+    /// </summary>
+    private void StopRotating()
     {
         GameObject parent = gameObject;
+
+        // Get current rotation angle and transform it into euler angles (from Quaternion)
         Vector3 rotation = parent.transform.GetChild(0).gameObject.transform.rotation.eulerAngles;
+
+        // Round to nearest 90 degree side
         rotation.z = Mathf.Round(rotation.z / 90f) * 90f;
+
+        // set the new angle
         parent.transform.GetChild(0).gameObject.transform.rotation = Quaternion.Euler(rotation);
+    }
+
+
+    /// <summary>
+    ///     Plays the death animation.
+    /// </summary>
+    private void PlayDeathAnimation()
+    {
+        // save the position of collision
+        Vector2 deathPos = player.transform.position;
+
+        // deactivate the player
+        player.gameObject.SetActive(false);
+
+        // enable the death animation object and its animator component
+        deathAnimObject.SetActive(true);
+        deathAnimator.enabled = true;
+
+        // place the object where the player died and play animation
+        deathAnimObject.transform.position = deathPos;
+        deathAnimator.Play("DeathAnim");
     }
     #endregion
 }

@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-public class JumpPadAnimationScript : MonoBehaviour
+public class JumpPadAnimation : MonoBehaviour
 {
 
     public Animator jumpPadAnimator;

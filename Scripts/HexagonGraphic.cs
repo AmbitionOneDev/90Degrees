@@ -1,10 +1,7 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class HexagonGraphic : MonoBehaviour, ICanvasRaycastFilter
 {
-
     public float Radius;
     private RectTransform rectTransform;
 
@@ -15,9 +12,8 @@ public class HexagonGraphic : MonoBehaviour, ICanvasRaycastFilter
 
     public bool IsRaycastLocationValid(Vector2 screenPoint, Camera eventCamera)
     {
-        Vector2 pivotToCursorVector;
         RectTransformUtility.ScreenPointToLocalPointInRectangle(
-            rectTransform, screenPoint, eventCamera, out pivotToCursorVector);
+            rectTransform, screenPoint, eventCamera, out Vector2 pivotToCursorVector);
 
         Vector2 pivotOffsetRatio = rectTransform.pivot - new Vector2(0.5f, 0.5f);
         Vector2 pivotOffset = Vector2.Scale(rectTransform.rect.size, pivotOffsetRatio);

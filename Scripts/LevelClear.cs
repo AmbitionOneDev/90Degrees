@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-public class LevelClearScript : MonoBehaviour
+public class LevelClear : MonoBehaviour
 {
     public Transform player;
     private const float CLEARER_OFFSET_Y = -10.45f;
@@ -9,9 +9,8 @@ public class LevelClearScript : MonoBehaviour
     {
         transform.position = new Vector3(0f, CLEARER_OFFSET_Y, 0f);
     }
-    void Update()
+    void FixedUpdate()
     {
-        // Offset the Clearer
         transform.position = new Vector3(0f, player.position.y + CLEARER_OFFSET_Y, 0f);
     }
 

@@ -1,11 +1,9 @@
 ﻿using UnityEngine;
-using UnityEngine.UI;
 
 public class MenuController : MonoBehaviour
 {
     public GameObject returnButton;
     public Animator animator;
-    public Camera cam;
     public GameObject modalAboutUs;
     public Animator modalAnimator;
 
@@ -28,10 +26,8 @@ public class MenuController : MonoBehaviour
 
     void Start()
     {
-        // use the 21:9 animation for taller aspect ratios, else use 16:9
-        // add these lines and anims for the other 2 as well
-        statsAnim = (cam.aspect < (9f / 16.1f) && cam.aspect > (9f / 21.1f)) ? "StatsWindowAnimationTall" : "StatsWindowAnimation";
-        settingsAnim = (cam.aspect < (9f / 16.1f) && cam.aspect > (9f / 21.1f)) ? "SettingsWindowAnimationTall" : "SettingsWindowAnimation";
+        statsAnim = "StatsWindowAnimation";
+        settingsAnim = "SettingsWindowAnimation";
 
         returnIsEnabled = false;
         returnButton.SetActive(false);

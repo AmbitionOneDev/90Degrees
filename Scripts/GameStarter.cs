@@ -1,7 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.UI;
+﻿using UnityEngine;
 
 public class GameStarter : MonoBehaviour
 {
@@ -10,9 +7,9 @@ public class GameStarter : MonoBehaviour
     public Player playerScript;
     public static bool isStarted = false;
 
+
     public void Start()
     {
-        //GameStarterAnimator.enabled = false;
         player.constraints = RigidbodyConstraints2D.FreezePositionY;
         playerScript.enabled = false;
     }

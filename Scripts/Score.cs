@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class Score : MonoBehaviour
 {
@@ -11,7 +9,6 @@ public class Score : MonoBehaviour
 
     // Score-related pickups duration in seconds
     private const float SCORE_MULTIPLIER_CHANGE_DURATION = 5f;
-
 
     private const int DEFAULT_SCORE = 10;
 
@@ -60,12 +57,6 @@ public class Score : MonoBehaviour
                 break;
         }
 
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
     }
 
     /*********************************************DODAJ DA SE SVAKIH 10M DODA 10 BODOVA (NEKI COUNTER, % OD POSITION.Y I TAKO TO, YOULL FIGURE IT OUT MORON)************************/
