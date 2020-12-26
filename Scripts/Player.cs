@@ -19,6 +19,7 @@ public class Player : MonoBehaviour
 
     // used externally in LevelGenerator
     public static bool hasDied = false;
+    public bool isPaused;
 
     private bool isJumpPadTriggered;
     private bool hasSpeedUpPickupActive = false;
@@ -57,8 +58,19 @@ public class Player : MonoBehaviour
     public GameStarter gameStarterScript;
     public Camera cameraMain;
 
+    private enum Rotation {
+        RIGHT = -1,
+        NONE = 0,
+        LEFT = 1
+    }
 
-    private int direction = 0;
+    private enum Directions
+    {
+        LEFT = -1,
+        RIGHT = 1
+    }
+    private int rotationDirection;
+    private int directionBeforePause;
     private bool isEligibleForJump = true;
     private float speedJumpFactor;
     private Vector2 jumpPadPosition;
@@ -79,8 +91,15 @@ public class Player : MonoBehaviour
 
     public void OnEnable()
     {
-        // Add starting force
-        player.AddForce(defaultSpeed, ForceMode2D.Impulse);
+        if(hasSpeedUpPickupActive)
+            player.AddForce(Vector2.up * runSpeed * SPEED_UP_FACTOR, ForceMode2D.Impulse);
+
+        else if(hasSlowDownPickupActive)
+            player.AddForce(Vector2.up * runSpeed * SLOW_DOWN_FACTOR, ForceMode2D.Impulse);
+
+        else
+            // Add starting force
+            player.AddForce(defaultSpeed, ForceMode2D.Impulse);
 
         // deactivate unnecessary death animation object and its animator component
         deathAnimObject.SetActive(false);
@@ -88,7 +107,7 @@ public class Player : MonoBehaviour
     }
 
     public void OnTriggerEnter2D(Collider2D collision)
-    { 
+    {
 
         // If player lands on a jump pad
         if (collision.CompareTag("JumpPad"))
@@ -128,7 +147,7 @@ public class Player : MonoBehaviour
 
                     // Set vertical speed to 0
                     // to allow proper force addition
-                    ResetSpeed();
+                    RemoveSpeedEffects();
 
                     // Destroy the picked up object
                     Destroy(collision.gameObject);
@@ -139,7 +158,7 @@ public class Player : MonoBehaviour
 
                     // Let the pickup last for a set amount of time
                     // Before resetting the speed back to normal
-                    Invoke("ResetSpeed", SPEED_PICKUP_DURATION);
+                    Invoke("RemoveSpeedEffects", SPEED_PICKUP_DURATION);
                     break;
                 }
 
@@ -153,14 +172,14 @@ public class Player : MonoBehaviour
                     break;
                 else
                 {
-                    ResetSpeed();
+                    RemoveSpeedEffects();
                     Destroy(collision.gameObject);
                     hasSlowDownPickupActive = true;
 
                     // Add muffled force to the player
                     player.AddForce(Vector2.up * runSpeed * SLOW_DOWN_FACTOR, ForceMode2D.Impulse);
 
-                    Invoke("ResetSpeed", SPEED_PICKUP_DURATION);
+                    Invoke("RemoveSpeedEffects", SPEED_PICKUP_DURATION);
                     break;
                 }
 
@@ -178,8 +197,13 @@ public class Player : MonoBehaviour
 
                 // Disable the camera follow script (FollowPlayer.cs)
                 FollowPlayer.enabled = false;
+
                 isEligibleForJump = true;
+
                 hasDied = true;
+
+                hasSpeedUpPickupActive = false;
+                hasSlowDownPickupActive = false;
 
                 // Reload the scene
                 Invoke("ReloadScene", SCENE_RESET_TIME);
@@ -190,7 +214,7 @@ public class Player : MonoBehaviour
         }
     }
 
-    
+
 
     private void OnTriggerExit2D(Collider2D collision)
     {
@@ -201,17 +225,15 @@ public class Player : MonoBehaviour
 
     public void OnCollisionEnter2D(Collision2D collision)
     {
-        String collidedObject = collision.collider.ToString();
-
-        if (collidedObject.StartsWith("Wall"))
+        if (collision.collider.CompareTag("Wall"))
         {
             isRotating = false;
             isEligibleForJump = true;
             player.velocity = new Vector2(0f, player.velocity.y);
 
             // stick the player to the wall
-            player.transform.position = (player.transform.position.x < 0) 
-                                            ? new Vector2(-MAX_POSITION, player.transform.position.y) 
+            player.transform.position = (player.transform.position.x < 0)
+                                            ? new Vector2(-MAX_POSITION, player.transform.position.y)
                                             : new Vector2(MAX_POSITION, player.transform.position.y);
         }
     }
@@ -232,20 +254,23 @@ public class Player : MonoBehaviour
 
             // used for rotation, -1 = left rotation, +1 = right rotation
             if (leftJump)
-                direction = 1;
+                rotationDirection = (int)Rotation.LEFT;
             else if (rightJump)
-                direction = -1;
+                rotationDirection = (int)Rotation.RIGHT;
 
-            if (isGrounded) {
+            if (isGrounded)
+            {
 
-                if (leftJump && player.transform.position.x > 0) {
+                if (leftJump && player.transform.position.x > 0)
+                {
                     player.AddForce(Vector2.left * jumpForce, ForceMode2D.Impulse);
                     isFacingLeft = true;
                     isGrounded = false;
                     canDoubleJump = true;
                 }
 
-                else if (rightJump && player.transform.position.x < 0) {
+                else if (rightJump && player.transform.position.x < 0)
+                {
                     player.AddForce(Vector2.right * jumpForce, ForceMode2D.Impulse);
                     isFacingLeft = false;
                     isGrounded = false;
@@ -319,12 +344,12 @@ public class Player : MonoBehaviour
             DestroySpeedPickups("SpeedUp");
 
         if (!isGrounded && isRotating)
-            Rotate(direction);
+            Rotate(rotationDirection);
         else
             StopRotating();
 
         // Player gets "stopped" randomly at times, fixed with this (hopefully)
-        if (player.velocity.y > 0.01f && player.velocity.y < 0.5f) player.AddForce(defaultSpeed, ForceMode2D.Impulse);
+        if (player.velocity.y > -0.5f && player.velocity.y < 0.5f) player.AddForce(defaultSpeed, ForceMode2D.Impulse);
     }
 
     // Methods
@@ -335,9 +360,16 @@ public class Player : MonoBehaviour
         // activate the player after the death animation has finished
         player.gameObject.SetActive(true);
 
-        // reset position
+        // reset velocity, position and rotation
         player.velocity = new Vector2(0f, 0f);
+
+        // randomize left or right as starting side
+        var a = new System.Random();
+        int startingSide = (a.NextDouble() > 0.5) ? -1 : 1;
+
+        startingPosition = new Vector3(startingSide * MAX_POSITION, -0.45f, 0);
         player.transform.position = startingPosition;
+
         gameObject.transform.GetChild(0).gameObject.transform.rotation = new Quaternion(0f, 0f, 0f, 0f);
     }
 
@@ -346,17 +378,28 @@ public class Player : MonoBehaviour
     /// It stops the player from moving vertically, then adds the default force in order to reset the movement speed back to the starting value.
     /// Finally, resets both speed related flags to false.
     /// </summary>
+    private void RemoveSpeedEffects()
+    {
+            // remove any vertical velocity
+            player.velocity = new Vector2(player.velocity.x, 0f);
+
+            // reset the movement to default
+            player.AddForce(Vector2.up * runSpeed);
+
+            // reset both speed pickup booleans
+            hasSpeedUpPickupActive = false;
+            hasSlowDownPickupActive = false;
+    }
+
     private void ResetSpeed()
     {
-        // remove any vertical velocity
-        player.velocity = new Vector2(player.velocity.x, 0f);
+        if (!isPaused) {
+            // remove any vertical velocity
+            player.velocity = new Vector2(player.velocity.x, 0f);
 
-        // reset the movement to default
-        player.AddForce(Vector2.up * runSpeed);
-
-        // reset both speed pickup booleans
-        hasSpeedUpPickupActive = false;
-        hasSlowDownPickupActive = false;
+            // reset the movement to default
+            player.AddForce(Vector2.up * runSpeed);
+        }
     }
 
     /// <summary>
@@ -365,7 +408,8 @@ public class Player : MonoBehaviour
     /// </summary>
     private void ReloadScene()
     {
-        if (GameStarter.isStarted) {
+        if (GameStarter.isStarted)
+        {
 
             // Regenerate the starting section
             LGscript.RegenerateStartingLevels();
@@ -386,8 +430,7 @@ public class Player : MonoBehaviour
             // ground the player
             isGrounded = true;
 
-            // Add starting force
-            player.AddForce(defaultSpeed, ForceMode2D.Impulse);
+            ResetSpeed();
 
             // activate the camera followage script
             FollowPlayer.enabled = true;
@@ -408,15 +451,15 @@ public class Player : MonoBehaviour
 
 
     /// <summary>
-        /// Used to check how much force the game should add to the player model.
-        /// Takes into consideration the current status of speed pickups.
-        /// If the player does not have a pickup, set its side to side movement speed to default.
-        /// Otherwise, add the default force multiplied by the current pickup's speed factor.
+    /// Used to check how much force the game should add to the player model.
+    /// Takes into consideration the current status of speed pickups.
+    /// If the player does not have a pickup, set its side to side movement speed to default.
+    /// Otherwise, add the default force multiplied by the current pickup's speed factor.
     /// </summary>
     /// 
     /// <param name="forceOrientation">
-        /// Takes in a Vector2 to indicate in which direction the force should be applied.
-        /// Preferably use Vector2.left or Vector2.right for side to side consistent movement.
+    /// Takes in a Vector2 to indicate in which direction the force should be applied.
+    /// Preferably use Vector2.left or Vector2.right for side to side consistent movement.
     /// </param>
     private void AddForceBasedOnPickup(Vector2 forceOrientation)
     {
@@ -433,9 +476,9 @@ public class Player : MonoBehaviour
     }
 
     /// <summary>
-        /// Used to remove all possible speed pickups after a player has picked one up.
-        /// NOTE: if a player has picked up a slowdown pickup, the speed up pickups are stil going to spawn.
-        /// Therefore, in Update() check for both possible pickups.
+    /// Used to remove all possible speed pickups after a player has picked one up.
+    /// NOTE: if a player has picked up a slowdown pickup, the speed up pickups are stil going to spawn.
+    /// Therefore, in Update() check for both possible pickups.
     /// </summary>
     /// <param name="pickupTag">
     ///     Takes in a string parameter which represents the ingame tag of the speed pickup you wish to destroy.
@@ -454,7 +497,8 @@ public class Player : MonoBehaviour
     /// <param name="levelDifficulty">
     ///     Difficulty/Theme of the level which the player is currently playing
     /// </param>
-    private void DestroyGeneratedLevels(String levelDifficulty) {
+    private void DestroyGeneratedLevels(String levelDifficulty)
+    {
         GameObject[] generatedLevels = GameObject.FindGameObjectsWithTag(levelDifficulty);
         foreach (GameObject obj in generatedLevels)
             Destroy(obj);
@@ -472,7 +516,7 @@ public class Player : MonoBehaviour
         GameObject parent = gameObject;
 
         //Rotate the child sprite of player object
-        parent.transform.GetChild(0).gameObject.transform.Rotate(0f,0f,1.75f * direction, Space.Self);
+        parent.transform.GetChild(0).gameObject.transform.Rotate(0f, 0f, 1.75f * direction, Space.Self);
     }
 
     /// <summary>
@@ -490,6 +534,8 @@ public class Player : MonoBehaviour
 
         // set the new angle
         parent.transform.GetChild(0).gameObject.transform.rotation = Quaternion.Euler(rotation);
+
+        rotationDirection = (int)Rotation.NONE;
     }
 
 
@@ -511,6 +557,49 @@ public class Player : MonoBehaviour
         // place the object where the player died and play animation
         deathAnimObject.transform.position = deathPos;
         deathAnimator.Play("DeathAnim");
+    }
+
+    public void StopMovement()
+    {
+        directionBeforePause = (player.velocity.x > 0) ? (int)Directions.RIGHT : (int)Directions.LEFT;
+        player.constraints = RigidbodyConstraints2D.FreezeAll;
+    }
+
+    public void ResetMovement()
+    {
+        // if the player is not moving because the game was paused after he died
+        // reset his speed when resumed
+        if (player.velocity.y < 1f) 
+            player.AddForce(defaultSpeed, ForceMode2D.Impulse);
+
+        player.constraints = RigidbodyConstraints2D.None;
+        Rotate(rotationDirection);
+
+        if (!isGrounded)
+        {
+            player.velocity = new Vector2(0f, player.velocity.y);
+
+            // if the player jumped on its own
+            if (isEligibleForJump)
+            {
+
+                if (directionBeforePause == (int)Directions.LEFT)
+                    player.AddForce(Vector2.left * jumpForce, ForceMode2D.Impulse);
+                else if (directionBeforePause == (int)Directions.RIGHT)
+                    player.AddForce(Vector2.right * jumpForce, ForceMode2D.Impulse);
+            }
+
+            // if it was launched off of a jumppad
+            else
+            {
+                if (jumpPadPosition.x > 0)
+                    player.AddForce(new Vector2(-jumpPadLaunchForce, 0f), ForceMode2D.Impulse);
+                else
+                    player.AddForce(new Vector2(jumpPadLaunchForce, 0f), ForceMode2D.Impulse);
+            }
+            
+        }
+
     }
     #endregion
 }

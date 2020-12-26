@@ -6,6 +6,7 @@ public class MenuController : MonoBehaviour
     public Animator animator;
     public GameObject modalAboutUs;
     public Animator modalAnimator;
+    public Player playerScript;
 
 
     // Animation names
@@ -39,13 +40,13 @@ public class MenuController : MonoBehaviour
         boolName = "goToStats";
         animator.SetBool(boolName, true);
     }
-    
+
     public void SetSettingsBool()
     {
         boolName = "goToSettings";
         animator.SetBool(boolName, true);
     }
-    
+
     public void SetShopBool()
     {
         boolName = "goToShop";
@@ -64,7 +65,8 @@ public class MenuController : MonoBehaviour
     }
 
     // dodaj kasnije
-    public void SwitchToSettings() {
+    public void SwitchToSettings()
+    {
         SetSettingsBool();
         if (animator.GetBool("goToSettings"))
         {
@@ -74,7 +76,7 @@ public class MenuController : MonoBehaviour
         }
     }
     public void SwitchToShop() { }
-    
+
 
     // bring back the starting buttons
     public void ResetView()
@@ -119,9 +121,23 @@ public class MenuController : MonoBehaviour
         if (!modalAboutUs.activeSelf) modalAboutUs.SetActive(true);
 
         if (!isOn)
-           modalAnimator.Play("Fade-in");
+            modalAnimator.Play("Fade-in");
         else
-           modalAnimator.Play("Fade-out");
+            modalAnimator.Play("Fade-out");
         isOn = !isOn;
+    }
+
+    public void PauseGame()
+    {
+        playerScript.isPaused = true;
+        playerScript.StopMovement();
+        playerScript.enabled = false;
+    }
+
+    public void ContinueGame()
+    {
+        playerScript.enabled = true;
+        playerScript.isPaused = false;
+        playerScript.ResetMovement();
     }
 }

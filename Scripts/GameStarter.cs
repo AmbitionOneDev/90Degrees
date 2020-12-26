@@ -16,12 +16,13 @@ public class GameStarter : MonoBehaviour
 
     public void GameStarterFunction()
     {
-        if (!isStarted) {
+        if (!isStarted)
+        {
             GameStarterAnimator.enabled = true;
             GameStarterAnimator.Play("LevelStartAnim");
             Invoke("SetSpeed", 2f);
         }
-            
+
     }
 
     public void SetSpeed()
