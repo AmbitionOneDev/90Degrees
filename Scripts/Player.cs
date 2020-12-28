@@ -60,7 +60,6 @@ public class Player : MonoBehaviour
 
     private enum Rotation {
         RIGHT = -1,
-        NONE = 0,
         LEFT = 1
     }
 
@@ -240,11 +239,14 @@ public class Player : MonoBehaviour
 
     public void Update()
     {
-        leftJump = Input.GetKeyDown(KeyCode.LeftArrow);
+        isGrounded = (MAX_POSITION - Math.Abs(player.transform.position.x)) < FLOAT_CALCULATION_ERROR;
+
         rightJump = Input.GetKeyDown(KeyCode.RightArrow);
+        leftJump = Input.GetKeyDown(KeyCode.LeftArrow);
         isPressed = leftJump || rightJump;
 
-        isGrounded = (MAX_POSITION - Math.Abs(player.transform.position.x)) < FLOAT_CALCULATION_ERROR;
+        // prevent jumping into the wall you're on
+        if (isGrounded && ((rightJump && player.transform.position.x > 0) || (leftJump && player.transform.position.x < 0))) return;
 
         /*-------------------------------------- <Double jump code> --------------------------------------*/
         #region 
@@ -309,6 +311,11 @@ public class Player : MonoBehaviour
             }
         }
 
+        if (!isGrounded && isRotating)
+            Rotate(rotationDirection);
+        else
+            StopRotating();
+
         #endregion
         /*-------------------------------------- </Double jump code> --------------------------------------*/
 
@@ -342,11 +349,6 @@ public class Player : MonoBehaviour
             DestroySpeedPickups("SlowDown");
         if (hasSpeedUpPickupActive)
             DestroySpeedPickups("SpeedUp");
-
-        if (!isGrounded && isRotating)
-            Rotate(rotationDirection);
-        else
-            StopRotating();
 
         // Player gets "stopped" randomly at times, fixed with this (hopefully)
         if (player.velocity.y > -0.5f && player.velocity.y < 0.5f) player.AddForce(defaultSpeed, ForceMode2D.Impulse);
@@ -410,7 +412,6 @@ public class Player : MonoBehaviour
     {
         if (GameStarter.isStarted)
         {
-
             // Regenerate the starting section
             LGscript.RegenerateStartingLevels();
 
@@ -515,8 +516,9 @@ public class Player : MonoBehaviour
     {
         GameObject parent = gameObject;
 
-        //Rotate the child sprite of player object
+        //Rotate the child sprites of player object
         parent.transform.GetChild(0).gameObject.transform.Rotate(0f, 0f, 1.75f * direction, Space.Self);
+        parent.transform.GetChild(1).gameObject.transform.Rotate(0f, 0f, 1.75f * direction, Space.Self);
     }
 
     /// <summary>
@@ -534,9 +536,8 @@ public class Player : MonoBehaviour
 
         // set the new angle
         parent.transform.GetChild(0).gameObject.transform.rotation = Quaternion.Euler(rotation);
-
-        rotationDirection = (int)Rotation.NONE;
-    }
+        parent.transform.GetChild(1).gameObject.transform.rotation = Quaternion.Euler(rotation);
+   }
 
 
     /// <summary>
@@ -572,7 +573,7 @@ public class Player : MonoBehaviour
         if (player.velocity.y < 1f) 
             player.AddForce(defaultSpeed, ForceMode2D.Impulse);
 
-        player.constraints = RigidbodyConstraints2D.None;
+        player.constraints = RigidbodyConstraints2D.None; 
         Rotate(rotationDirection);
 
         if (!isGrounded)

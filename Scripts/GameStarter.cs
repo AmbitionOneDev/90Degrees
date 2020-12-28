@@ -20,7 +20,7 @@ public class GameStarter : MonoBehaviour
         {
             GameStarterAnimator.enabled = true;
             GameStarterAnimator.Play("LevelStartAnim");
-            Invoke("SetSpeed", 2f);
+            Invoke("SetSpeed", 1f);
         }
 
     }

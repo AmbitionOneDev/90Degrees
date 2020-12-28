@@ -1,4 +1,6 @@
 ﻿using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class MenuController : MonoBehaviour
 {
@@ -8,11 +10,10 @@ public class MenuController : MonoBehaviour
     public Animator modalAnimator;
     public Player playerScript;
 
-
     // Animation names
-    private string statsAnim;
-    private string shopAnim;
-    private string settingsAnim;
+    private string shopAnim = "ShopWindowAnimation";
+    private string statsAnim = "StatsWindowAnimation";
+    private string settingsAnim = "SettingsWindowAnimation";
 
     // Auxiliaries
     private string lastPlayedAnimation;
@@ -25,57 +26,39 @@ public class MenuController : MonoBehaviour
     private bool isTutorialEnabled = true;
     private bool isOn = false;
 
-    void Start()
+    public void Start()
     {
-        statsAnim = "StatsWindowAnimation";
-        settingsAnim = "SettingsWindowAnimation";
-
         returnIsEnabled = false;
         returnButton.SetActive(false);
         modalAboutUs.SetActive(false);
     }
 
-    public void SetStatsBool()
+    public void SetAnimBool(string boolName)
     {
-        boolName = "goToStats";
-        animator.SetBool(boolName, true);
-    }
-
-    public void SetSettingsBool()
-    {
-        boolName = "goToSettings";
-        animator.SetBool(boolName, true);
-    }
-
-    public void SetShopBool()
-    {
-        boolName = "goToShop";
         animator.SetBool(boolName, true);
     }
 
     public void SwitchToStats()
     {
-        SetStatsBool();
-        if (animator.GetBool("goToStats"))
-        {
-            animator.Play(statsAnim);
-            ToggleReturn();
-            lastPlayedAnimation = statsAnim;
-        }
+        SetAnimBool("goToStats");
+        animator.Play(statsAnim);
+        ToggleReturn();
+        lastPlayedAnimation = statsAnim;
     }
 
-    // dodaj kasnije
     public void SwitchToSettings()
     {
-        SetSettingsBool();
-        if (animator.GetBool("goToSettings"))
-        {
-            animator.Play(settingsAnim);
-            ToggleReturn();
-            lastPlayedAnimation = settingsAnim;
-        }
+        SetAnimBool("goToSettings");
+        animator.Play(settingsAnim);
+        ToggleReturn();
+        lastPlayedAnimation = settingsAnim;
     }
-    public void SwitchToShop() { }
+    public void SwitchToShop() {
+        SetAnimBool("goToShop");
+        animator.Play(shopAnim);
+        ToggleReturn();
+        lastPlayedAnimation = shopAnim;
+    }
 
 
     // bring back the starting buttons
@@ -85,7 +68,7 @@ public class MenuController : MonoBehaviour
         animator.SetBool(boolName, false);
 
         // play the reversed version of the last played animation
-        animator.Play(lastPlayedAnimation + "Reverse");
+        animator.Play(lastPlayedAnimation + "Reversed");
 
         ToggleReturn();
     }
@@ -129,6 +112,7 @@ public class MenuController : MonoBehaviour
 
     public void PauseGame()
     {
+        animator.Play("PauseMenuAnim");
         playerScript.isPaused = true;
         playerScript.StopMovement();
         playerScript.enabled = false;
@@ -136,8 +120,16 @@ public class MenuController : MonoBehaviour
 
     public void ContinueGame()
     {
+        animator.Play("PauseMenuAnimReversed");
         playerScript.enabled = true;
         playerScript.isPaused = false;
         playerScript.ResetMovement();
+    }
+    
+
+    public void ReturnToMainMenu()
+    {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        GameStarter.isStarted = false;
     }
 }
