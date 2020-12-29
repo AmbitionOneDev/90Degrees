@@ -10,19 +10,17 @@ public class Score : MonoBehaviour
     public TextMeshProUGUI pickupNotifier;
     public TextMeshProUGUI highScoreNumber;
     public TextMeshProUGUI highScoreText;
-    public Animator outlineAnimator;
     public SpriteRenderer outlineSprite;
 
     private bool hasDoubleScorePickupActive = false;
     private bool hasHalfScorePickupActive = false;
-    private bool isOutlineTransparent = false;
     private bool fadeOutPickupNotifier = false;
     private bool isPickupNotifierTextVisible;
 
-    private int score;
+    private double score;
     private int pickupsCollectedCounter;
     private int lastKnownPosition;
-    private int highScore = 0;
+    private double highScore = 0;
 
     //private float timeElapsed = 0f;
     //private float startingTime;
@@ -52,7 +50,8 @@ public class Score : MonoBehaviour
                 Destroy(collision.gameObject);
 
                 // clear opposite pickups if there are any
-                if (hasHalfScorePickupActive) {
+                if (hasHalfScorePickupActive) 
+                {
                     hasHalfScorePickupActive = false;
                     pickupsCollectedCounter = 0;
                 }
@@ -78,7 +77,8 @@ public class Score : MonoBehaviour
             case "HalfScore":
                 Destroy(collision.gameObject);
 
-                if (hasDoubleScorePickupActive) {
+                if (hasDoubleScorePickupActive) 
+                {
                     hasDoubleScorePickupActive = false;
                     pickupsCollectedCounter = 0;
                 }
@@ -89,8 +89,10 @@ public class Score : MonoBehaviour
                 
                 fadeOutPickupNotifier = true;
                 ResetColor();
-
-                pickupsCollectedCounter++;
+                
+                // after 6 the score becomes 0 so it would never add up
+                if(pickupsCollectedCounter < 7)
+                    pickupsCollectedCounter++;
 
                 RemoveAPickup();
                 break;
@@ -98,11 +100,12 @@ public class Score : MonoBehaviour
             case "Obstacle":
                 if (score > highScore)
                 {
-                    highScore = score;
+                    highScore = Math.Round(score, 2);
                     highScoreText.text = "New high score!";
                 }
                 else
                     highScoreText.text = "High score:";
+
                 highScoreNumber.text = highScore.ToString();
                 highScoreNumber.enabled = true;
                 highScoreText.enabled = true;
@@ -114,21 +117,12 @@ public class Score : MonoBehaviour
 
     public void FixedUpdate()
     {
-        score = int.Parse(scoreNumber.text);
+        score = double.Parse(scoreNumber.text);
         
         int currentPosition = (int)transform.position.y;
 
-
-        // if there is an outline but the player has no active pickups
-        if (!isOutlineTransparent && !hasDoubleScorePickupActive && !hasHalfScorePickupActive)
-        {
-            // set outline to transparent
-            outlineAnimator.Play("ResetColorAnim");
-            isOutlineTransparent = true;
-        }
-
         // if the pickup Noti should fade out, fade it out
-        if (fadeOutPickupNotifier) FadeOutText();
+        if (fadeOutPickupNotifier) FadeOutPickupNotifierText();
 
 
         if (!isPickupNotifierTextVisible)
@@ -143,17 +137,13 @@ public class Score : MonoBehaviour
 
         if (hasDoubleScorePickupActive)
         {
-            isOutlineTransparent = false;
-            // play the outline animation
-            outlineAnimator.Play("DoubleScoreAnim");
-
             // update the text to show the multiplier
-            scoreMultiplier.text = "x" + 2 * pickupsCollectedCounter;
+            scoreMultiplier.text = "x" + System.Math.Round(Math.Pow(2, pickupsCollectedCounter),2);
 
             // add a doubled point every 1 meter (or whatever that is)
             if (currentPosition > lastKnownPosition)
             {
-                scoreNumber.text = (score + 2 * pickupsCollectedCounter).ToString();
+                scoreNumber.text = (score + System.Math.Round(Math.Pow(2, pickupsCollectedCounter), 2)).ToString();
                 lastKnownPosition = currentPosition;
             }
         }
@@ -161,14 +151,13 @@ public class Score : MonoBehaviour
         // same but for HalfScore
         else if (hasHalfScorePickupActive)
         {
-            isOutlineTransparent = false;
-            outlineAnimator.Play("HalfScoreAnim");
-
-            scoreMultiplier.text = "x" + System.Math.Round(0.5f / pickupsCollectedCounter, 2);
-            if (currentPosition > lastKnownPosition) {
+            scoreMultiplier.text = "x" + System.Math.Round(Math.Pow(0.5, pickupsCollectedCounter), 2);
+            if (currentPosition > lastKnownPosition)
+            {
                 // don't divide by 0
                 if (pickupsCollectedCounter > 0)
-                    scoreNumber.text = (score + (int)(0.5 / pickupsCollectedCounter)).ToString();
+                    scoreNumber.text = (score + System.Math.Round(Math.Pow(0.5, pickupsCollectedCounter), 2)).ToString();
+
                 lastKnownPosition = currentPosition;
             }
         }
@@ -179,7 +168,7 @@ public class Score : MonoBehaviour
             if (currentPosition > lastKnownPosition)
             {
                 lastKnownPosition = currentPosition;
-                ++score;
+                score+=1;
                 scoreNumber.text = score.ToString();
             }
         }
@@ -224,13 +213,15 @@ public class Score : MonoBehaviour
         //}
     }
 
-    private void FadeOutText()
+    private void FadeOutPickupNotifierText()
     {
         // if text is visible
-        if (pickupNotifier.color.a > 0) {
+        if (pickupNotifier.color.a > 0)
+        {
             // reduce it until close 0
             pickupNotifier.color =
                 new Color(pickupNotifier.color.r, pickupNotifier.color.g, pickupNotifier.color.b, pickupNotifier.color.a - 0.0025f);
+
             // when close enough to 0, set booleans and exit
             if (Math.Abs(pickupNotifier.color.a - 0) < 0.005f)
             {
@@ -254,7 +245,6 @@ public class Score : MonoBehaviour
         StopAllCoroutines();
         highScoreNumber.enabled = false;
         highScoreText.enabled = false;
-        outlineAnimator.Play("ResetColorAnim");
         hasDoubleScorePickupActive = false;
         hasHalfScorePickupActive = false;
         pickupsCollectedCounter = 0;

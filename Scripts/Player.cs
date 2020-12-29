@@ -55,6 +55,7 @@ public class Player : MonoBehaviour
     public LevelGenerator LGscript;
     public GameObject clearer;
     public Animator deathAnimator;
+    public Animator outlineAnimator;
     public GameStarter gameStarterScript;
     public Camera cameraMain;
 
@@ -103,6 +104,7 @@ public class Player : MonoBehaviour
         // deactivate unnecessary death animation object and its animator component
         deathAnimObject.SetActive(false);
         deathAnimator.enabled = false;
+        outlineAnimator.Play("ResetColorAnim");
     }
 
     public void OnTriggerEnter2D(Collider2D collision)
@@ -134,6 +136,7 @@ public class Player : MonoBehaviour
         switch (collision.tag)
         {
             case "SpeedUp":
+                outlineAnimator.Play("SpeedUpAnim");
 
                 // If SpeedUp is already active
                 // Do not allow another pickup of it
@@ -162,6 +165,7 @@ public class Player : MonoBehaviour
                 }
 
             case "SlowDown":
+                outlineAnimator.Play("SlowDownAnim");
 
                 // Set the current speed jump factor to a square of slowdown factors
                 speedJumpFactor = SLOW_DOWN_FACTOR * SLOW_DOWN_FACTOR;
@@ -349,6 +353,8 @@ public class Player : MonoBehaviour
             DestroySpeedPickups("SlowDown");
         if (hasSpeedUpPickupActive)
             DestroySpeedPickups("SpeedUp");
+        else
+            outlineAnimator.Play("ResetColorAnim");
 
         // Player gets "stopped" randomly at times, fixed with this (hopefully)
         if (player.velocity.y > -0.5f && player.velocity.y < 0.5f) player.AddForce(defaultSpeed, ForceMode2D.Impulse);
@@ -382,6 +388,7 @@ public class Player : MonoBehaviour
     /// </summary>
     private void RemoveSpeedEffects()
     {
+
             // remove any vertical velocity
             player.velocity = new Vector2(player.velocity.x, 0f);
 
@@ -391,6 +398,8 @@ public class Player : MonoBehaviour
             // reset both speed pickup booleans
             hasSpeedUpPickupActive = false;
             hasSlowDownPickupActive = false;
+            
+            outlineAnimator.Play("ResetColorAnim");
     }
 
     private void ResetSpeed()
