@@ -17,9 +17,9 @@ public class Score : MonoBehaviour
     private bool fadeOutPickupNotifier = false;
     private bool isPickupNotifierTextVisible;
 
-    private double score;
     private int pickupsCollectedCounter;
     private int lastKnownPosition;
+    private double score;
     private double highScore = 0;
 
     //private float timeElapsed = 0f;
@@ -28,6 +28,7 @@ public class Score : MonoBehaviour
 
     // Score-related pickups duration in seconds
     private const float SCORE_MULTIPLIER_CHANGE_DURATION = 5f;
+    private const int MAX_PICKUP_NUMBER = 7;
 
 
     public void Start()
@@ -66,7 +67,8 @@ public class Score : MonoBehaviour
                 ResetColor();
 
                 // increase the collected pickups
-                pickupsCollectedCounter++;
+                if (pickupsCollectedCounter < MAX_PICKUP_NUMBER)
+                    pickupsCollectedCounter++;
 
                 // call the coroutine-based function to check when to remove pickups
                 // handles stacking pickups
@@ -91,7 +93,7 @@ public class Score : MonoBehaviour
                 ResetColor();
                 
                 // after 6 the score becomes 0 so it would never add up
-                if(pickupsCollectedCounter < 7)
+                if(pickupsCollectedCounter < MAX_PICKUP_NUMBER)
                     pickupsCollectedCounter++;
 
                 RemoveAPickup();

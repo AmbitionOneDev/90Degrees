@@ -1,6 +1,5 @@
 ﻿using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
 public class MenuController : MonoBehaviour
 {
@@ -11,9 +10,9 @@ public class MenuController : MonoBehaviour
     public Player playerScript;
 
     // Animation names
-    private string shopAnim = "ShopWindowAnimation";
-    private string statsAnim = "StatsWindowAnimation";
-    private string settingsAnim = "SettingsWindowAnimation";
+    private readonly string shopAnim = "ShopWindowAnimation";
+    private readonly string statsAnim = "StatsWindowAnimation";
+    private readonly string settingsAnim = "SettingsWindowAnimation";
 
     // Auxiliaries
     private string lastPlayedAnimation;
@@ -35,6 +34,7 @@ public class MenuController : MonoBehaviour
 
     public void SetAnimBool(string boolName)
     {
+        this.boolName = boolName;
         animator.SetBool(boolName, true);
     }
 
@@ -82,19 +82,16 @@ public class MenuController : MonoBehaviour
     // za ove dvije ces morat koristit jos neki audio manager, pogledaj unity tutoriale za glazbu i zvukove
     public void ToggleMusic()
     {
-        Debug.Log("Toggled music.");
         isMusicEnabled = !isMusicEnabled;
     }
 
     public void ToggleSound()
     {
-        Debug.Log("Toggled sound.");
         isSoundEnabled = !isSoundEnabled;
     }
 
     public void ToggleTutorial()
     {
-        Debug.Log("Toggled tutorial.");
         isTutorialEnabled = !isTutorialEnabled;
     }
 

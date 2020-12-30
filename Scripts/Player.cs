@@ -5,9 +5,10 @@ public class Player : MonoBehaviour
     /*--------------------------------------<defaults>--------------------------------------*/
     #region
 
-    private static readonly float runSpeed = 12.5f;
+    private static readonly float runSpeed = 13.5f;
     private readonly float jumpPadLaunchForce = 40f;
-    private readonly float jumpForce = 14.5f;
+    private readonly float jumpForce = 12.5f;
+    private readonly float rotationSpeed = 2.25f;
     private Vector2 defaultSpeed = Vector2.up * runSpeed;
     private Vector3 startingCameraPosition = new Vector3(0f, 4f, -7f);
 
@@ -20,7 +21,6 @@ public class Player : MonoBehaviour
     // used externally in LevelGenerator
     public static bool hasDied = false;
     public bool isPaused;
-
     private bool isJumpPadTriggered;
     private bool hasSpeedUpPickupActive = false;
     private bool hasSlowDownPickupActive = false;
@@ -37,8 +37,8 @@ public class Player : MonoBehaviour
 
     private const double FLOAT_CALCULATION_ERROR = 1E-8f;
     private const float SCENE_RESET_TIME = 2f;
-    private const float SPEED_UP_FACTOR = 1.5f;
-    private const float SLOW_DOWN_FACTOR = 0.5f;
+    private const float SPEED_UP_FACTOR = 1.25f;
+    private const float SLOW_DOWN_FACTOR = 0.75f;
     private const float SPEED_PICKUP_DURATION = 5f;
     private readonly float DOUBLE_JUMP_FORCE_MULTIPLIER = 0.75f;
     private readonly float MAX_POSITION = 1.5815f;
@@ -71,13 +71,13 @@ public class Player : MonoBehaviour
     }
     private int rotationDirection;
     private int directionBeforePause;
-    private bool isEligibleForJump = true;
     private float speedJumpFactor;
+    private bool isPressed;
+    private bool leftJump = false;
+    private bool rightJump = false;
+    private bool isEligibleForJump = true;
     private Vector2 jumpPadPosition;
     private Vector3 startingPosition;
-    private bool isPressed;
-    private bool leftJump;
-    private bool rightJump;
 
 
     #endregion
@@ -91,6 +91,8 @@ public class Player : MonoBehaviour
 
     public void OnEnable()
     {
+        leftJump = rightJump = false;
+
         if(hasSpeedUpPickupActive)
             player.AddForce(Vector2.up * runSpeed * SPEED_UP_FACTOR, ForceMode2D.Impulse);
 
@@ -118,6 +120,8 @@ public class Player : MonoBehaviour
             isEligibleForJump = false;
 
             isGrounded = false;
+
+            leftJump = rightJump = false;
 
             // Store the current jumppad position for further checks
             jumpPadPosition = collision.transform.position;
@@ -233,25 +237,36 @@ public class Player : MonoBehaviour
             isRotating = false;
             isEligibleForJump = true;
             player.velocity = new Vector2(0f, player.velocity.y);
-
             // stick the player to the wall
             player.transform.position = (player.transform.position.x < 0)
                                             ? new Vector2(-MAX_POSITION, player.transform.position.y)
                                             : new Vector2(MAX_POSITION, player.transform.position.y);
+
         }
+    }
+
+    public void SetDirection(int dir)
+    {
+        if (dir == (int)Directions.LEFT) leftJump = true;
+        else rightJump = true;
     }
 
     public void Update()
     {
-        isGrounded = (MAX_POSITION - Math.Abs(player.transform.position.x)) < FLOAT_CALCULATION_ERROR;
 
-        rightJump = Input.GetKeyDown(KeyCode.RightArrow);
-        leftJump = Input.GetKeyDown(KeyCode.LeftArrow);
+        //leftJump = Input.GetKeyDown(KeyCode.LeftArrow);
+        //rightJump = Input.GetKeyDown(KeyCode.RightArrow);
+
         isPressed = leftJump || rightJump;
 
-        // prevent jumping into the wall you're on
-        if (isGrounded && ((rightJump && player.transform.position.x > 0) || (leftJump && player.transform.position.x < 0))) return;
+        isGrounded = (MAX_POSITION - Math.Abs(player.transform.position.x)) < FLOAT_CALCULATION_ERROR;
 
+        // prevent jumping into the wall you're on
+        if (isGrounded && ((rightJump && player.transform.position.x > 0) || (leftJump && player.transform.position.x < 0)))
+        {
+            leftJump = rightJump = false;
+            return;
+        }
         /*-------------------------------------- <Double jump code> --------------------------------------*/
         #region 
         if (isPressed && isEligibleForJump)
@@ -282,6 +297,8 @@ public class Player : MonoBehaviour
                     isGrounded = false;
                     canDoubleJump = true;
                 }
+
+
             }
             else
             {
@@ -313,11 +330,12 @@ public class Player : MonoBehaviour
                     canDoubleJump = false;
                 }
             }
+            leftJump = rightJump = false;
         }
 
         if (!isGrounded && isRotating)
             Rotate(rotationDirection);
-        else
+        else 
             StopRotating();
 
         #endregion
@@ -338,6 +356,7 @@ public class Player : MonoBehaviour
         }
         #endregion
         /*-------------------------------------- </Jump pad code> --------------------------------------*/
+
     }
 
     public void FixedUpdate()
@@ -365,6 +384,8 @@ public class Player : MonoBehaviour
 
     private void ResetPlayer()
     {
+        leftJump = rightJump = false;
+
         // activate the player after the death animation has finished
         player.gameObject.SetActive(true);
 
@@ -526,8 +547,8 @@ public class Player : MonoBehaviour
         GameObject parent = gameObject;
 
         //Rotate the child sprites of player object
-        parent.transform.GetChild(0).gameObject.transform.Rotate(0f, 0f, 1.75f * direction, Space.Self);
-        parent.transform.GetChild(1).gameObject.transform.Rotate(0f, 0f, 1.75f * direction, Space.Self);
+        parent.transform.GetChild(0).gameObject.transform.Rotate(0f, 0f, rotationSpeed * direction, Space.Self);
+        parent.transform.GetChild(1).gameObject.transform.Rotate(0f, 0f, rotationSpeed * direction, Space.Self);
     }
 
     /// <summary>
