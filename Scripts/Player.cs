@@ -7,8 +7,8 @@ public class Player : MonoBehaviour
 
     private static readonly float runSpeed = 13.5f;
     private readonly float jumpPadLaunchForce = 40f;
-    private readonly float jumpForce = 12.5f;
-    private readonly float rotationSpeed = 2.25f;
+    private readonly float jumpForce = 17.5f;
+    private readonly float rotationSpeed = 5f;
     private Vector2 defaultSpeed = Vector2.up * runSpeed;
     private Vector3 startingCameraPosition = new Vector3(0f, 4f, -7f);
 
@@ -226,8 +226,13 @@ public class Player : MonoBehaviour
     private void OnTriggerExit2D(Collider2D collision)
     {
         if (collision.CompareTag("JumpPad"))
+        {
             // Disable further jump pad launches
             isJumpPadTriggered = false;
+
+            leftJump = rightJump = false;
+        }
+            
     }
 
     public void OnCollisionEnter2D(Collision2D collision)
