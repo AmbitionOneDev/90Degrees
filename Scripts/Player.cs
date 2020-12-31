@@ -37,7 +37,7 @@ public class Player : MonoBehaviour
 
     private const double FLOAT_CALCULATION_ERROR = 1E-8f;
     private const float SCENE_RESET_TIME = 2f;
-    private const float SPEED_UP_FACTOR = 1.25f;
+    private const float SPEED_UP_FACTOR = 1.5f;
     private const float SLOW_DOWN_FACTOR = 0.75f;
     private const float SPEED_PICKUP_DURATION = 5f;
     private readonly float DOUBLE_JUMP_FORCE_MULTIPLIER = 0.75f;
