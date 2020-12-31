@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using UnityEngine;
 public class Player : MonoBehaviour
 {
@@ -106,7 +107,8 @@ public class Player : MonoBehaviour
         // deactivate unnecessary death animation object and its animator component
         deathAnimObject.SetActive(false);
         deathAnimator.enabled = false;
-        outlineAnimator.Play("ResetColorAnim");
+
+        RemoveSpeedEffects();
     }
 
     public void OnTriggerEnter2D(Collider2D collision)
@@ -130,30 +132,25 @@ public class Player : MonoBehaviour
             return;
         }
 
-        /*------------------------------------------------------------------------------------------------------------------********
-         * ako je lik pokupio neki od pickupa
-         * pa nakon toga pokupio suprotni pickup
-         * makni efekte tog pickupa
-         * i dodaj efekte tog novopokupljenog 
-         * TO MORAS DODAT, JOS NIJE DODANO
-         ------------------------------------------------------------------------------------------------------------------********/
         switch (collision.tag)
         {
             case "SpeedUp":
-                outlineAnimator.Play("SpeedUpAnim");
-
                 // If SpeedUp is already active
                 // Do not allow another pickup of it
                 if (hasSpeedUpPickupActive)
                     break;
                 else
                 {
+                    StopAllCoroutines();
+
                     // Set the current speed jump factor to a square of speedup factors
                     speedJumpFactor = SPEED_UP_FACTOR * SPEED_UP_FACTOR;
 
                     // Set vertical speed to 0
                     // to allow proper force addition
                     RemoveSpeedEffects();
+
+                    outlineAnimator.Play("SpeedUpAnim");
 
                     // Destroy the picked up object
                     Destroy(collision.gameObject);
@@ -164,29 +161,33 @@ public class Player : MonoBehaviour
 
                     // Let the pickup last for a set amount of time
                     // Before resetting the speed back to normal
-                    Invoke("RemoveSpeedEffects", SPEED_PICKUP_DURATION);
+                    StartCoroutine(DelayPickupRemoval());
                     break;
                 }
 
             case "SlowDown":
-                outlineAnimator.Play("SlowDownAnim");
-
-                // Set the current speed jump factor to a square of slowdown factors
-                speedJumpFactor = SLOW_DOWN_FACTOR * SLOW_DOWN_FACTOR;
-
+                
                 // If SlowDown is already active
                 if (hasSlowDownPickupActive)
                     break;
                 else
                 {
+                    StopAllCoroutines();
+
+                    // Set the current speed jump factor to a square of slowdown factors
+                    speedJumpFactor = SLOW_DOWN_FACTOR * SLOW_DOWN_FACTOR;
+
                     RemoveSpeedEffects();
+
+                    outlineAnimator.Play("SlowDownAnim");
+
                     Destroy(collision.gameObject);
                     hasSlowDownPickupActive = true;
 
                     // Add muffled force to the player
                     player.AddForce(Vector2.up * runSpeed * SLOW_DOWN_FACTOR, ForceMode2D.Impulse);
 
-                    Invoke("RemoveSpeedEffects", SPEED_PICKUP_DURATION);
+                    StartCoroutine(DelayPickupRemoval());
                     break;
                 }
 
@@ -377,8 +378,6 @@ public class Player : MonoBehaviour
             DestroySpeedPickups("SlowDown");
         if (hasSpeedUpPickupActive)
             DestroySpeedPickups("SpeedUp");
-        else
-            outlineAnimator.Play("ResetColorAnim");
 
         // Player gets "stopped" randomly at times, fixed with this (hopefully)
         if (player.velocity.y > -0.5f && player.velocity.y < 0.5f) player.AddForce(defaultSpeed, ForceMode2D.Impulse);
@@ -386,6 +385,12 @@ public class Player : MonoBehaviour
 
     // Methods
     #region                                              
+
+    private IEnumerator DelayPickupRemoval()
+    {
+        yield return new WaitForSecondsRealtime(SPEED_PICKUP_DURATION);
+        RemoveSpeedEffects();
+    }
 
     private void ResetPlayer()
     {
@@ -414,7 +419,7 @@ public class Player : MonoBehaviour
     /// </summary>
     private void RemoveSpeedEffects()
     {
-
+            outlineAnimator.Play("ResetColorAnim");
             // remove any vertical velocity
             player.velocity = new Vector2(player.velocity.x, 0f);
 
@@ -425,7 +430,6 @@ public class Player : MonoBehaviour
             hasSpeedUpPickupActive = false;
             hasSlowDownPickupActive = false;
             
-            outlineAnimator.Play("ResetColorAnim");
     }
 
     private void ResetSpeed()
